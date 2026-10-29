@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hybrid Pulse - Strength & Half Ironman Tracker</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            cyan: '#00f2fe',
+                            neon: '#0047ff',
+                            lime: '#10b981',
+                            dark: '#0a0f1d',
+                            card: '#131c31',
+                            border: '#1f2d4d'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #0a0f1d;
+            color: #f3f4f6;
+            touch-action: manipulation;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0a0f1d;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1f2d4d;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="pb-24 pt-4 px-3 sm:px-6 max-w-3xl mx-auto min-h-screen flex flex-col justify-between">
+
+    <!-- TOP HEADER -->
+    <header class="mb-4 flex justify-between items-center bg-brand-card p-4 rounded-2xl border border-brand-border shadow-lg">
+        <div>
+            <h1 class="text-xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent flex items-center gap-2">
+                <i data-lucide="dumbbell" class="text-cyan-400"></i> HYBRID PULSE
+            </h1>
+            <p class="text-xs text-gray-400">5-Day Split & Half Ironman Prep</p>
+        </div>
+        <button onclick="openBackupModal()" class="p-2 bg-slate-800 hover:bg-slate-700 text-cyan-400 rounded-xl border border-brand-border text-xs flex items-center gap-1 transition">
+            <i data-lucide="database" class="w-4 h-4"></i> Data
+        </button>
+    </header>
+
+    <!-- MAIN TAB CONTENT CONTAINER -->
+    <main class="flex-grow">
+
+        <!-- ================= TAB 1: WORKOUT LOG ================= -->
+        <section id="tab-workout" class="tab-content space-y-4">
+            
+            <!-- ROUTINE SELECTOR (5 DAYS) -->
+            <div class="bg-brand-card p-4 rounded-2xl border border-brand-border space-y-3">
+                <label class="text-xs uppercase font-bold text-gray-400 tracking-wider flex items-center gap-1.5">
+                    <i data-lucide="calendar" class="w-4 h-4 text-cyan-400"></i> Select Training Day
+                </label>
+                <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                    <button onclick="selectDay(1)" id="btn-day1" class="routine-btn p-2.5 text-xs font-semibold rounded-xl border border-brand-border text-center bg-cyan-500/20 border-cyan-500/50 text-cyan-300 transition">
+                        Day 1: Upper 1
+                    </button>
+                    <button onclick="selectDay(2)" id="btn-day2" class="routine-btn p-2.5 text-xs font-semibold rounded-xl border border-brand-border text-center bg-slate-800/80 hover:bg-slate-700 transition">
+                        Day 2: Lower 1
+                    </button>
+                    <button onclick="selectDay(3)" id="btn-day3" class="routine-btn p-2.5 text-xs font-semibold rounded-xl border border-brand-border text-center bg-slate-800/80 hover:bg-slate-700 transition">
+                        Day 3: Upper 2
+                    </button>
+                    <button onclick="selectDay(4)" id="btn-day4" class="routine-btn p-2.5 text-xs font-semibold rounded-xl border border-brand-border text-center bg-slate-800/80 hover:bg-slate-700 transition">
+                        Day 4: Lower 2
+                    </button>
+                    <button onclick="selectDay(5)" id="btn-day5" class="routine-btn p-2.5 text-xs font-semibold rounded-xl border border-brand-border text-center bg-slate-800/80 hover:bg-slate-700 transition col-span-2 sm:col-span-1">
+                        Day 5: Full Body
+                    </button>
+                </div>
+            </div>
+
+            <!-- WORKOUT TITLE & ADD EXERCISE -->
+            <div class="flex justify-between items-center px-1">
+                <h2 id="activeRoutineTitle" class="text-lg font-bold text-white flex items-center gap-2">
+                    Day 1: Upper Day 1
+                </h2>
+                <button onclick="promptAddExercise()" class="text-xs bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 px-3 py-1.5 rounded-xl font-medium flex items-center gap-1 transition">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add Movement
+                </button>
+            </div>
+
+            <!-- EXERCISE CARDS CONTAINER -->
+            <div id="exerciseListContainer" class="space-y-4">
+                <!-- Dynamic Exercise Cards rendered via JS -->
+            </div>
+        </section>
+
+        <!-- ================= TAB 2: DETAILED SET HISTORY ================= -->
+        <section id="tab-history" class="tab-content hidden space-y-4">
+            <div class="bg-brand-card p-4 rounded-2xl border border-brand-border space-y-3">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                        <i data-lucide="history" class="text-cyan-400 w-4 h-4"></i> Session History
+                    </h3>
+                    <span class="text-xs text-gray-400">Workout Buckets</span>
+                </div>
+                <div id="detailedHistoryContainer" class="space-y-3 pt-1">
+                    <!-- Dynamic Detailed Set Logs rendered via JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= TAB 3: RUNNING & CARDIO ================= -->
+        <section id="tab-running" class="tab-content hidden space-y-4">
+            
+            <!-- WEEKLY KM MILEAGE SUMMARY -->
+            <div class="bg-brand-card p-4 rounded-2xl border border-brand-border space-y-2">
+                <div class="flex justify-between items-center">
+                    <span class="text-xs uppercase font-bold text-gray-400 tracking-wider">Weekly Running Volume (km)</span>
+                    <span class="text-xs text-emerald-400 font-semibold flex items-center gap-1"><i data-lucide="target" class="w-3.5 h-3.5"></i> Half Ironman Base</span>
+                </div>
+                <div class="flex items-baseline gap-2">
+                    <span id="weeklyDistanceTotal" class="text-3xl font-extrabold text-white">0.0</span>
+                    <span class="text-gray-400 text-sm">km this week</span>
+                </div>
+                <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden mt-1">
+                    <div id="weeklyProgressBar" class="bg-emerald-400 h-2 rounded-full" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- LOG RUN FORM -->
+            <div class="bg-brand-card p-4 rounded-2xl border border-brand-border space-y-3">
+                <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                    <i data-lucide="activity" class="text-emerald-400 w-4 h-4"></i> Log New Run
+                </h3>
+                <form id="runLogForm" onsubmit="handleLogRun(event)" class="space-y-3">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-xs text-gray-400">Date</label>
+                            <input type="date" id="runDate" required class="w-full mt-1 p-2 bg-slate-900 border border-brand-border rounded-xl text-xs text-white">
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-400">Zone / Type</label>
+                            <select id="runZone" class="w-full mt-1 p-2 bg-slate-900 border border-brand-border rounded-xl text-xs text-white">
+                                <option value="Zone 2 Base">Zone 2 (Easy Aerobic)</option>
+                                <option value="Zone 3/4 Tempo">Zone 3/4 (Tempo/Threshold)</option>
+                                <option value="Intervals">Speed / Intervals</option>
+                                <option value="Long Run">Long Endurance Run</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-400">Distance (Kilometers)</label>
+                            <input type="number" step="0.01" id="runDistance" placeholder="5.0" required oninput="calculatePace()" class="w-full mt-1 p-2 bg-slate-900 border border-brand-border rounded-xl text-xs text-white">
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-400">Duration (Mins)</label>
+                            <input type="number" step="1" id="runDuration" placeholder="30" required oninput="calculatePace()" class="w-full mt-1 p-2 bg-slate-900 border border-brand-border rounded-xl text-xs text-white">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="text-xs text-gray-400">Avg Heart Rate (bpm)</label>
+                            <input type="number" id="runHr" placeholder="142" class="w-full mt-1 p-2 bg-slate-900 border border-brand-border rounded-xl text-xs text-white">
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center text-xs bg-slate-900/60 p-2.5 rounded-xl border border-brand-border">
+                        <span class="text-gray-400">Estimated Pace:</span>
+                        <span id="calculatedPaceDisplay" class="font-mono font-bold text-emerald-400">-- : -- /km</span>
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-400">Notes / Effort</label>
+                        <input type="text" id="runNotes" placeholder="Felt smooth, kept HR under 145 bpm" class="w-full mt-1 p-2 bg-slate-900 border border-brand-border rounded-xl text-xs text-white">
+                    </div>
+                    <button type="submit" class="w-full py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs transition flex justify-center items-center gap-1">
+                        <i data-lucide="plus-circle" class="w-4 h-4"></i> Save Run Entry
+                    </button>
+                </form>
+            </div>
+
+            <!-- RECENT RUN LOGS -->
+            <div class="bg-brand-card p-4 rounded-2xl border border-brand-border space-y-3">
+                <h3 class="text-sm font-bold text-white">Run History (km)</h3>
+                <div id="runHistoryContainer" class="space-y-2 text-xs">
+                    <!-- Dynamic Run History -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= TAB 4: BODY WEIGHT & PROFILE ================= -->
+        <section id="tab-profile" class="tab-content hidden space-y-4">
+            
+            <!-- GARMIN & RENPHO INTEGRATION NOTICE -->
+            <div class="bg-blue-950/40 border border-blue-500/30 p-3.5 rounded-2xl text-xs text-blue-200 flex items-start gap-2.5">
+                <i data-lucide="info" class="w-5 h-5 text-cyan-400 shrink-0 mt-0.5"></i>
+                <div class="space-y-1">
+                    <p class="font-semibold text-cyan-300">Renpho & Body Composition Metrics</p>
+                    <p class="text-gray-300 leading-relaxed">
+                        Log your daily weight and body fat % measurements to visualize the correlation between your total mass and body fat percentage.
+                    </p>
+                </div>
+            </div>
+
+            <!-- WEIGHT LOG FORM & CHART -->
+            <div class="bg-brand-card p-4 rounded-2xl border border-brand-border space-y-4">
+                <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                    <i data-lucide="scale" class="text-cyan-400 w-4 h-4"></i> Log Body Metrics
+                </h3>
+                <form id="weightLogForm" onsubmit="handleLogWeight(event)" class="grid grid-cols-3 gap-2">
+                    <div>
+                        <label class="text-xs text-gray-400">Date</label>
+                        <input type="date" id="weightDate" required class="w-full mt-1 p-2 bg-slate-900 border border-brand-border rounded-xl text-xs text-white">
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-400">Weight (lbs/kg)</label>
+                        <input type="number" step="0.1" id="weightVal" placeholder="185.2" required class="w-full mt-1 p-2 bg-slate-900 border border-brand-border rounded-xl text-xs text-white">
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-400">Body Fat %</label>
+                        <input type="number" step="0.1" id="bodyFatVal" placeholder="15.5" required class="w-full mt-1 p-2 bg-slate-900 border border-brand-border rounded-xl text-xs text-white">
+                    </div>
+                    <button type="submit" class="col-span-3 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold rounded-xl text-xs transition mt-1">
+                        Record Metric
+                    </button>
+                </form>
+
+                <!-- SCATTER CHART CANVAS (X: WEIGHT, Y: BODY FAT %) -->
+                <div class="pt-2">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="text-xs font-semibold text-gray-400">Weight vs. Body Fat % Correlation</h4>
+                        <span class="text-[10px] text-cyan-400 font-medium">Scatter Plot (X: Weight | Y: BF%)</span>
+                    </div>
+                    <div class="relative w-full h-64 bg-slate-900/50 p-2 rounded-xl border border-brand-border">
+                        <canvas id="weightChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WEIGHT HISTORY LIST -->
+            <div class="bg-brand-card p-4 rounded-2xl border border-brand-border space-y-3">
+                <h3 class="text-sm font-bold text-white">Recorded Composition Logs</h3>
+                <div id="weightHistoryContainer" class="space-y-2 text-xs max-h-48 overflow-y-auto pr-1">
+                    <!-- Dynamic Weight Logs -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= TAB 5: PROGRESS & RECORDS ================= -->
+        <section id="tab-progress" class="tab-content hidden space-y-4">
+            <div class="bg-brand-card p-4 rounded-2xl border border-brand-border space-y-3">
+                <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                    <i data-lucide="trophy" class="text-amber-400 w-4 h-4"></i> Exercise Personal Records (PRs)
+                </h3>
+                <p class="text-xs text-gray-400">Your heaviest logged weight across key compound movements.</p>
+                <div id="prListContainer" class="space-y-2 pt-2">
+                    <!-- Dynamic PR Cards -->
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- BACKUP / DATA MODAL -->
+    <div id="backupModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-brand-card border border-brand-border w-full max-w-md p-5 rounded-2xl space-y-4">
+            <div class="flex justify-between items-center">
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                    <i data-lucide="database" class="text-cyan-400"></i> Backup & Transfer Data
+                </h3>
+                <button onclick="closeBackupModal()" class="text-gray-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <p class="text-xs text-gray-300 leading-relaxed">
+                Export your workout history, set breakdown, runs, and weight trends to a JSON file, or restore data from a previous backup.
+            </p>
+            <div class="space-y-2 pt-2">
+                <button onclick="exportDataJSON()" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 border border-brand-border rounded-xl text-xs font-bold text-cyan-400 flex items-center justify-center gap-2">
+                    <i data-lucide="download" class="w-4 h-4"></i> Export JSON Backup
+                </button>
+                <label class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 border border-brand-border rounded-xl text-xs font-bold text-gray-300 flex items-center justify-center gap-2 cursor-pointer">
+                    <i data-lucide="upload" class="w-4 h-4"></i> Import JSON Backup
+                    <input type="file" id="importFileInput" accept=".json" onchange="importDataJSON(event)" class="hidden">
+                </label>
+                <button onclick="clearAllData()" class="w-full py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-xl text-xs font-semibold mt-4">
+                    Reset / Clear All App Data
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- BOTTOM MOBILE NAVIGATION BAR -->
+    <nav class="fixed bottom-0 left-0 right-0 z-40 bg-slate-950/95 backdrop-blur border-t border-brand-border px-2 py-2">
+        <div class="max-w-3xl mx-auto flex justify-around items-center">
+            <button onclick="switchTab('workout')" id="nav-workout" class="nav-btn flex flex-col items-center gap-1 p-1 text-cyan-400">
+                <i data-lucide="dumbbell" class="w-5 h-5"></i>
+                <span class="text-[10px] font-medium">Workouts</span>
+            </button>
+            <button onclick="switchTab('history')" id="nav-history" class="nav-btn flex flex-col items-center gap-1 p-1 text-gray-400 hover:text-white">
+                <i data-lucide="history" class="w-5 h-5"></i>
+                <span class="text-[10px] font-medium">Set History</span>
+            </button>
+            <button onclick="switchTab('running')" id="nav-running" class="nav-btn flex flex-col items-center gap-1 p-1 text-gray-400 hover:text-white">
+                <i data-lucide="activity" class="w-5 h-5"></i>
+                <span class="text-[10px] font-medium">Running</span>
+            </button>
+            <button onclick="switchTab('profile')" id="nav-profile" class="nav-btn flex flex-col items-center gap-1 p-1 text-gray-400 hover:text-white">
+                <i data-lucide="user" class="w-5 h-5"></i>
+                <span class="text-[10px] font-medium">Metrics</span>
+            </button>
+            <button onclick="switchTab('progress')" id="nav-progress" class="nav-btn flex flex-col items-center gap-1 p-1 text-gray-400 hover:text-white">
+                <i data-lucide="trophy" class="w-5 h-5"></i>
+                <span class="text-[10px] font-medium">PRs</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- APPLICATION SCRIPT LOGIC -->
+    <script>
+        // ROUTINE CONFIGURATION
+        const ROUTINES = {
+            1: {
+                title: "Day 1: Upper Day 1",
+                exercises: [
+                    "Barbell Bench Press",
+                    "Bent-over v-grip Landmine Rows",
+                    "Pull-ups",
+                    "Dumbbell Shoulder Press",
+                    "Dips",
+                    "Neutral Grip Lat Pulldowns"
+                ]
+            },
+            2: {
+                title: "Day 2: Lower Day 1",
+                exercises: [
+                    "Hack Squat",
+                    "Seated Hip Abductors",
+                    "Barbell RDL",
+                    "Barbell Front Squat",
+                    "Standing Calf Raises"
+                ]
+            },
+            3: {
+                title: "Day 3: Upper Day 2",
+                exercises: [
+                    "Incline Dumbbell Bench Press",
+                    "Seated V-Grip Cable Rows",
+                    "Face-Pulls",
+                    "Seated Chest Flys",
+                    "Chin-ups",
+                    "Lateral Raises",
+                    "Barbell Bicep Curls"
+                ]
+            },
+            4: {
+                title: "Day 4: Lower Day 2",
+                exercises: [
+                    "Barbell Deadlifts",
+                    "Leg Press",
+                    "Leg Extensions",
+                    "Seated Calfs"
+                ]
+            },
+            5: {
+                title: "Day 5: Full Body (Optional)",
+                exercises: [
+                    "Incline Barbell Smith Bench",
+                    "Barbell Bent over Rows",
+                    "Barbell Curls",
+                    "Tricep Pushdowns",
+                    "Pull-ups",
+                    "Dips"
+                ]
+            }
+        };
+
+        // Routine Data
+        let appData = {
+            workouts: {}, // { exerciseName: [ { date, weight, reps, rpe, dayTitle } ] }
+            sessions: [], // [ { id, date, dayTitle, dayNum, exercises: { exName: [sets] } } ]
+            runs: [],     // [ { id, date, zone, distance, duration, hr, pace, notes } ]
+            weights: []   // [ { id, date, weight, bodyFat } ]
+        };
+
+        let currentDayNum = 1;
+        let weightChartInstance = null;
+
+        // INITIALIZATION
+        window.onload = function() {
+            loadData();
+            lucide.createIcons();
+            selectDay(1);
+            initWeightChart();
+            renderRunHistory();
+            renderPRList();
+
+            // Set default date inputs to today
+            const today = new Date().toISOString().split('T')[0];
+            if (document.getElementById('runDate')) document.getElementById('runDate').value = today;
+            if (document.getElementById('weightDate')) document.getElementById('weightDate').value = today;
+        };
+
+        function loadData() {
+            const stored = localStorage.getItem('hybrid_pulse_data');
+            if (stored) {
+                try {
+                    appData = JSON.parse(stored);
+                    if (!appData.workouts) appData.workouts = {};
+                    if (!appData.sessions) appData.sessions = [];
+                    if (!appData.runs) appData.runs = [];
+                    if (!appData.weights) appData.weights = [];
+                } catch(e) {
+                    console.error("Error loading data", e);
+                }
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem('hybrid_pulse_data', JSON.stringify(appData));
+        }
+
+        // DAY SELECTOR & EXERCISE RENDERING
+        function selectDay(dayNum) {
+            currentDayNum = dayNum;
+            const routine = ROUTINES[dayNum];
+            document.getElementById('activeRoutineTitle').innerText = routine.title;
+
+            // Highlight button
+            for (let i = 1; i <= 5; i++) {
+                const btn = document.getElementById(`btn-day${i}`);
+                if (btn) {
+                    if (i === dayNum) {
+                        btn.className = "routine-btn p-2.5 text-xs font-semibold rounded-xl border border-cyan-500/50 text-cyan-300 bg-cyan-500/20 transition";
+                    } else {
+                        btn.className = "routine-btn p-2.5 text-xs font-semibold rounded-xl border border-brand-border text-center bg-slate-800/80 hover:bg-slate-700 transition";
+                    }
+                }
+            }
+
+            renderExercises();
+        }
+
+        function renderExercises() {
+            const container = document.getElementById('exerciseListContainer');
+            container.innerHTML = '';
+
+            const routine = ROUTINES[currentDayNum];
+            routine.exercises.forEach((exName, index) => {
+                const logs = appData.workouts[exName] || [];
+                const recentLogs = logs.slice(-3).reverse();
+
+                let logsHtml = '';
+                if (recentLogs.length > 0) {
+                    logsHtml = `
+                        <div class="mt-2 space-y-1">
+                            <span class="text-[10px] text-gray-400 uppercase font-semibold">Logged Sets:</span>
+                            ${recentLogs.map(l => `
+                                <div class="flex justify-between items-center text-xs bg-slate-900/60 p-2 rounded-lg border border-brand-border">
+                                    <span class="text-cyan-400 font-bold">${l.weight} lbs × ${l.reps} reps</span>
+                                    <span class="text-gray-400 text-[10px]">RPE ${l.rpe} • ${l.date}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+
+                const card = `
+                    <div class="bg-brand-card p-4 rounded-2xl border border-brand-border space-y-3">
+                        <div class="flex justify-between items-start">
+                            <h3 class="font-bold text-white text-sm flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full bg-cyan-400"></span> ${exName}
+                            </h3>
+                        </div>
+
+                        <form onsubmit="handleLogSet(event, '${exName.replace(/'/g, "\\'")}')" class="grid grid-cols-3 gap-2 pt-1">
+                            <div>
+                                <label class="text-[10px] text-gray-400">Weight (lbs)</label>
+                                <input type="number" step="0.5" placeholder="0" required id="weight-${index}" class="w-full mt-1 p-2 bg-slate-900 border border-brand-border rounded-xl text-xs text-white">
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-gray-400">Reps</label>
+                                <input type="number" step="1" placeholder="0" required id="reps-${index}" class="w-full mt-1 p-2 bg-slate-900 border border-brand-border rounded-xl text-xs text-white">
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-gray-400">RPE (1-10)</label>
+                                <input type="number" step="0.5" min="1" max="10" placeholder="8" required id="rpe-${index}" class="w-full mt-1 p-2 bg-slate-900 border border-brand-border rounded-xl text-xs text-white">
+                            </div>
+                            <button type="submit" class="col-span-3 mt-1 py-2 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 font-bold rounded-xl text-xs transition flex justify-center items-center gap-1">
+                                <i data-lucide="check" class="w-3.5 h-3.5"></i> Log Set
+                            </button>
+                        </form>
+
+                        ${logsHtml}
+                    </div>
+                `;
+                container.innerHTML += card;
+            });
+
+            lucide.createIcons();
+        }
+
+        function handleLogSet(e, exName) {
+            e.preventDefault();
+            const form = e.target;
+            const weight = form.querySelector('input[id^="weight-"]').value;
+            const reps = form.querySelector('input[id^="reps-"]').value;
+            const rpe = form.querySelector('input[id^="rpe-"]').value;
+            const date = new Date().toISOString().split('T')[0];
+            const routine = ROUTINES[currentDayNum];
+
+            const setEntry = {
+                id: Date.now(),
+                date,
+                weight: parseFloat(weight),
+                reps: parseInt(reps),
+                rpe: parseFloat(rpe),
+                dayTitle: routine.title
+            };
+
+            if (!appData.workouts[exName]) {
+                appData.workouts[exName] = [];
+            }
+            appData.workouts[exName].push(setEntry);
+
+            // Group into today's session bucket
+            let session = appData.sessions.find(s => s.date === date && s.dayNum === currentDayNum);
+            if (!session) {
+                session = {
+                    id: Date.now(),
+                    date,
+                    dayNum: currentDayNum,
+                    dayTitle: routine.title,
+                    exercises: {}
+                };
+                appData.sessions.unshift(session);
+            }
+            if (!session.exercises[exName]) {
+                session.exercises[exName] = [];
+            }
+            session.exercises[exName].push(setEntry);
+
+            saveData();
+            renderExercises();
+            renderPRList();
+        }
+
+        function promptAddExercise() {
+            const exName = prompt("Enter new exercise movement name:");
+            if (exName && exName.trim() !== '') {
+                ROUTINES[currentDayNum].exercises.push(exName.trim());
+                renderExercises();
+            }
+        }
+
+        // DETAILED HISTORY (BUCKETS)
+        function renderDetailedHistory() {
+            const container = document.getElementById('detailedHistoryContainer');
+            container.innerHTML = '';
+
+            if (appData.sessions.length === 0) {
+                container.innerHTML = '<p class="text-gray-400 italic text-xs">No workout sessions logged yet.</p>';
+                return;
+            }
+
+            appData.sessions.forEach(session => {
+                let exercisesHtml = '';
+                for (const [exName, sets] of Object.entries(session.exercises)) {
+                    exercisesHtml += `
+                        <div class="mt-2 pl-2 border-l-2 border-cyan-500/40 space-y-1">
+                            <div class="font-bold text-slate-200 text-xs">${exName}</div>
+                            <div class="grid grid-cols-1 gap-1">
+                                ${sets.map((s, idx) => `
+                                    <div class="text-[11px] text-gray-400 flex justify-between bg-slate-900/40 px-2 py-1 rounded">
+                                        <span>Set ${idx + 1}: <strong class="text-cyan-300">${s.weight} lbs</strong> × ${s.reps} reps</span>
+                                        <span>RPE ${s.rpe}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                const card = `
+                    <div class="bg-slate-900/80 p-3.5 rounded-xl border border-brand-border space-y-2">
+                        <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                            <span class="font-bold text-cyan-400 text-xs">${session.dayTitle}</span>
+                            <span class="text-[10px] text-gray-400">${session.date}</span>
+                        </div>
+                        ${exercisesHtml}
+                    </div>
+                `;
+                container.innerHTML += card;
+            });
+        }
+
+        // CARDIO & RUNNING
+        function calculatePace() {
+            const dist = parseFloat(document.getElementById('runDistance').value);
+            const dur = parseFloat(document.getElementById('runDuration').value);
+            const display = document.getElementById('calculatedPaceDisplay');
+
+            if (dist > 0 && dur > 0) {
+                const paceDecimal = dur / dist;
+                const paceMins = Math.floor(paceDecimal);
+                const paceSecs = Math.round((paceDecimal - paceMins) * 60);
+                display.innerText = `${paceMins}:${paceSecs.toString().padStart(2, '0')} /km`;
+            } else {
+                display.innerText = '-- : -- /km';
+            }
+        }
+
+        function handleLogRun(e) {
+            e.preventDefault();
+            const date = document.getElementById('runDate').value;
+            const zone = document.getElementById('runZone').value;
+            const distance = parseFloat(document.getElementById('runDistance').value);
+            const duration = parseFloat(document.getElementById('runDuration').value);
+            const hr = document.getElementById('runHr').value;
+            const notes = document.getElementById('runNotes').value;
+
+            const paceDecimal = duration / distance;
+            const paceMins = Math.floor(paceDecimal);
+            const paceSecs = Math.round((paceDecimal - paceMins) * 60);
+            const pace = `${paceMins}:${paceSecs.toString().padStart(2, '0')} /km`;
+
+            appData.runs.unshift({
+                id: Date.now(),
+                date,
+                zone,
+                distance,
+                duration,
+                hr: hr || '--',
+                pace,
+                notes: notes || 'N/A'
+            });
+
+            saveData();
+            renderRunHistory();
+            document.getElementById('runLogForm').reset();
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('runDate').value = today;
+            document.getElementById('calculatedPaceDisplay').innerText = '-- : -- /km';
+        }
+
+        function renderRunHistory() {
+            const container = document.getElementById('runHistoryContainer');
+            container.innerHTML = '';
+
+            let totalKm = 0;
+            appData.runs.forEach(run => {
+                totalKm += parseFloat(run.distance || 0);
+                const card = `
+                    <div class="bg-slate-900/80 p-3 rounded-xl border border-brand-border flex justify-between items-center">
+                        <div>
+                            <div class="font-bold text-white text-xs">${run.distance} km • <span class="text-emerald-400">${run.zone}</span></div>
+                            <div class="text-[10px] text-gray-400">${run.date} • ${run.duration} mins • ${run.pace} • HR: ${run.hr} bpm</div>
+                            <div class="text-[10px] text-gray-500 italic mt-0.5">${run.notes}</div>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += card;
+            });
+
+            document.getElementById('weeklyDistanceTotal').innerText = totalKm.toFixed(1);
+            const pct = Math.min(100, (totalKm / 30) * 100);
+            document.getElementById('weeklyProgressBar').style.width = `${pct}%`;
+
+            if (appData.runs.length === 0) {
+                container.innerHTML = '<p class="text-gray-400 italic text-xs">No runs logged yet.</p>';
+            }
+        }
+
+        // WEIGHT & BODY FAT LOGGING
+        function handleLogWeight(e) {
+            e.preventDefault();
+            const date = document.getElementById('weightDate').value;
+            const weight = parseFloat(document.getElementById('weightVal').value);
+            const bodyFat = parseFloat(document.getElementById('bodyFatVal').value);
+
+            appData.weights.unshift({
+                id: Date.now(),
+                date,
+                weight,
+                bodyFat
+            });
+
+            saveData();
+            renderWeightHistory();
+            updateWeightChart();
+            document.getElementById('weightLogForm').reset();
+            document.getElementById('weightDate').value = new Date().toISOString().split('T')[0];
+        }
+
+        function renderWeightHistory() {
+            const container = document.getElementById('weightHistoryContainer');
+            container.innerHTML = '';
+
+            appData.weights.forEach(w => {
+                const card = `
+                    <div class="bg-slate-900/80 p-2.5 rounded-xl border border-brand-border flex justify-between items-center">
+                        <span class="text-gray-300">${w.date}</span>
+                        <span class="font-bold text-cyan-400">${w.weight} lbs / kg</span>
+                        <span class="text-emerald-400 font-semibold">${w.bodyFat}% BF</span>
+                    </div>
+                `;
+                container.innerHTML += card;
+            });
+
+            if (appData.weights.length === 0) {
+                container.innerHTML = '<p class="text-gray-400 italic text-xs">No composition logs recorded.</p>';
+            }
+        }
+
+        function initWeightChart() {
+            const ctx = document.getElementById('weightChart').getContext('2d');
+            weightChartInstance = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: 'Body Comp (Weight vs BF%)',
+                        data: [],
+                        borderColor: '#00f2fe',
+                        backgroundColor: 'rgba(0, 242, 254, 0.7)',
+                        pointRadius: 6,
+                        pointHoverRadius: 9
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            position: 'bottom',
+                            title: {
+                                display: true,
+                                text: 'Body Weight',
+                                color: '#00f2fe',
+                                font: { size: 11, weight: 'bold' }
+                            },
+                            grid: { color: '#1f2d4d' },
+                            ticks: { color: '#9ca3af', font: { size: 10 } }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Body Fat %',
+                                color: '#10b981',
+                                font: { size: 11, weight: 'bold' }
+                            },
+                            grid: { color: '#1f2d4d' },
+                            ticks: { color: '#9ca3af', font: { size: 10 } }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const point = context.raw;
+                                    return `Weight: ${point.x} | BF%: ${point.y}% (${point.date || ''})`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            updateWeightChart();
+            renderWeightHistory();
+        }
+
+        function updateWeightChart() {
+            if (!weightChartInstance) return;
+
+            const scatterPoints = appData.weights
+                .filter(w => w.weight && w.bodyFat)
+                .map(w => ({
+                    x: parseFloat(w.weight),
+                    y: parseFloat(w.bodyFat),
+                    date: w.date
+                }));
+
+            weightChartInstance.data.datasets[0].data = scatterPoints;
+            weightChartInstance.update();
+        }
+
+        // PR LIST RENDER
+        function renderPRList() {
+            const container = document.getElementById('prListContainer');
+            container.innerHTML = '';
+
+            let prCount = 0;
+            for (const [exName, logs] of Object.entries(appData.workouts)) {
+                if (logs.length > 0) {
+                    let best = logs.reduce((max, curr) => curr.weight > max.weight ? curr : max, logs[0]);
+                    prCount++;
+
+                    const card = `
+                        <div class="bg-slate-900/80 p-3 rounded-xl border border-brand-border flex justify-between items-center">
+                            <div>
+                                <h4 class="font-bold text-white text-xs">${exName}</h4>
+                                <span class="text-[11px] text-gray-400">Logged on ${best.date}</span>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-sm font-extrabold text-amber-400">${best.weight} lbs</span>
+                                <div class="text-[10px] text-gray-400">${best.reps} reps @ RPE ${best.rpe}</div>
+                            </div>
+                        </div>
+                    `;
+                    container.innerHTML += card;
+                }
+            }
+
+            if (prCount === 0) {
+                container.innerHTML = '<p class="text-gray-400 italic text-xs">No exercise records logged yet. Start logging sets in the Workouts tab!</p>';
+            }
+        }
+
+        // TAB NAVIGATION
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('text-cyan-400');
+                btn.classList.add('text-gray-400');
+            });
+
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+            const navBtn = document.getElementById(`nav-${tabId}`);
+            if (navBtn) {
+                navBtn.classList.remove('text-gray-400');
+                navBtn.classList.add('text-cyan-400');
+            }
+
+            if (tabId === 'history') {
+                renderDetailedHistory();
+            }
+
+            if (tabId === 'profile' && weightChartInstance) {
+                setTimeout(() => weightChartInstance.resize(), 100);
+            }
+        }
+
+        // BACKUP & EXPORT MODALS
+        function openBackupModal() {
+            document.getElementById('backupModal').classList.remove('hidden');
+        }
+
+        function closeBackupModal() {
+            document.getElementById('backupModal').classList.add('hidden');
+        }
+
+        function exportDataJSON() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `hybrid_pulse_backup_${new Date().toISOString().split('T')[0]}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        function importDataJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (imported && typeof imported === 'object') {
+                        appData = imported;
+                        saveData();
+                        location.reload();
+                    }
+                } catch(err) {
+                    alert("Invalid JSON file format.");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function clearAllData() {
+            if (confirm("Are you sure you want to clear all workouts, runs, and weight records?")) {
+                localStorage.removeItem('hybrid_pulse_data');
+                location.reload();
+            }
+        }
+    </script>
+</body>
+</html>
