@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hybrid Pulse - Workout Tracker</title>
+  <style>
+    :root {
+      --bg: #121212;
+      --card-bg: #1e1e1e;
+      --accent: #ff4757;
+      --text: #ffffff;
+      --text-muted: #a0a0a0;
+      --border: #2d2d2d;
+    }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      padding-bottom: 70px;
+    }
+    header {
+      background: var(--card-bg);
+      padding: 14px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+    }
+    h1 { margin: 0; font-size: 1.2rem; color: var(--accent); }
+    h2 { font-size: 1.1rem; margin-top: 0; margin-bottom: 12px; }
+    nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--card-bg);
+      display: flex;
+      justify-content: space-around;
+      padding: 12px 0;
+      border-top: 1px solid var(--border);
+    }
+    nav button {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    nav button.active { color: var(--accent); font-weight: bold; }
+    .container { padding: 16px; max-width: 600px; margin: 0 auto; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .card {
+      background: var(--card-bg);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+      border: 1px solid var(--border);
+    }
+    select, input, button.action-btn {
+      width: 100%;
+      padding: 10px;
+      margin-top: 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: #2a2a2a;
+      color: var(--text);
+      box-sizing: border-box;
+    }
+    button.action-btn {
+      background: var(--accent);
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 12px;
+    }
+    .exercise-title { font-size: 1.05rem; font-weight: bold; margin-bottom: 8px; }
+    .set-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+    .set-row input { margin-top: 0; }
+
+    /* Compact Accordion Styles for Workout History */
+    .accordion-item {
+      margin-bottom: 8px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+      background: var(--card-bg);
+    }
+    .accordion-header {
+      background: #242424;
+      padding: 8px 12px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.9rem;
+      font-weight: 600;
+      user-select: none;
+    }
+    .accordion-header:hover {
+      background: #2c2c2c;
+    }
+    .accordion-content {
+      display: none; /* Completely hides content until toggled */
+      padding: 10px 12px;
+      background: #161616;
+      border-top: 1px solid var(--border);
+      font-size: 0.85rem;
+    }
+    .accordion-content.open { 
+      display: block !important; 
+    }
+    .history-ex-title {
+      font-weight: bold;
+      color: var(--accent);
+      margin-top: 6px;
+      margin-bottom: 2px;
+    }
+    .history-set-list {
+      margin: 0 0 8px 0;
+      padding-left: 18px;
+      color: #d0d0d0;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Hybrid Pulse</h1>
+    <div id="date-display" style="font-size: 0.85rem; color: var(--text-muted);"></div>
+  </header>
+
+  <div class="container">
+    <!-- WORKOUT TAB -->
+    <div id="workout-tab" class="tab-content active">
+      <div class="card">
+        <label for="day-select" style="font-size: 0.9rem;">Select Workout Day:</label>
+        <select id="day-select" onchange="loadWorkoutDay()">
+          <option value="day1">Day 1: Upper Day 1</option>
+          <option value="day2">Day 2: Lower Day 1</option>
+          <option value="day3">Day 3: Upper Day 2</option>
+          <option value="day4">Day 4: Lower Day 2</option>
+          <option value="day5">Day 5: Full Body Optional</option>
+        </select>
+      </div>
+
+      <div id="exercise-list"></div>
+      <button class="action-btn" onclick="logWorkoutSession()">Save Workout Session</button>
+    </div>
+
+    <!-- HISTORY BUCKETS TAB -->
+    <div id="history-tab" class="tab-content">
+      <h2>Workout History</h2>
+      <div id="history-buckets"></div>
+    </div>
+
+    <!-- PRs TAB -->
+    <div id="prs-tab" class="tab-content">
+      <h2>Personal Records</h2>
+      <div id="prs-list"></div>
+    </div>
+
+    <!-- STRETCHES TAB -->
+    <div id="stretches-tab" class="tab-content">
+      <h2>Full Body Stretches</h2>
+      <div class="card">
+        <h3 style="margin-top: 0; font-size: 1rem;">Post-Workout Recovery Routine</h3>
+        <ul style="padding-left: 20px; font-size: 0.9rem; line-height: 1.5;">
+          <li><strong>World's Greatest Stretch:</strong> 5 reps per side</li>
+          <li><strong>Standing Quad & Hip Flexor Stretch:</strong> 45s per side</li>
+          <li><strong>Pigeon Pose / Figure Four Stretch:</strong> 60s per side</li>
+          <li><strong>Doorway Chest & Bicep Stretch:</strong> 45s</li>
+          <li><strong>Lat & Shoulder Child's Pose:</strong> 60s</li>
+          <li><strong>Hamstring Wall Stretch:</strong> 60s per side</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <nav>
+    <button id="nav-workout" class="active" onclick="switchTab('workout')">Workout</button>
+    <button id="nav-history" onclick="switchTab('history')">History</button>
+    <button id="nav-prs" onclick="switchTab('prs')">PRs</button>
+    <button id="nav-stretches" onclick="switchTab('stretches')">Stretches</button>
+  </nav>
+
+  <script>
+    const TIMEZONE = 'America/Toronto'; // London, Ontario, Canada
+    const GOOGLE_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxRgk7NK2Ez02Rv_9cEKikgu3reEGKq--cHiag7kcujG708ljLNIcc2l4kf59w1Veu2/exec";
+
+    const routines = {
+      day1: ["Barbell Bench Press", "Bent over v-grip Landmine Rows", "Neutral Grip Lat Pulldowns", "Dumbbell Shoulder Press", "Pull-ups"],
+      day2: ["Hack Squat", "Seated Hip Abductors", "Barbell RDL", "Barbell Front Squat", "Standing Calf Raises"],
+      day3: ["Incline Dumbbell Bench Press", "Seated V-Grip Cable Rows", "Face-Pulls", "Seated Chest Flys", "Chin-ups", "Lateral Raises", "Barbell Bicep Curls"],
+      day4: ["Barbell Deadlifts", "Leg Press", "Leg Extensions", "Seated Calfs"],
+      day5: ["Incline Barbell Smith Bench", "Barbell Bent over Rows", "Barbell Curls", "Tricep Pushdowns", "Pull-ups", "Dips"]
+    };
+
+    const trackedPRs = ["Hack Squat", "Barbell Front Squat", "Barbell Bench Press", "Barbell Deadlifts"];
+
+    function getLocalDateString() {
+      return new Date().toLocaleDateString('en-CA', { timeZone: TIMEZONE }); // Returns YYYY-MM-DD
+    }
+
+    function checkDailyRefresh() {
+      const today = getLocalDateString();
+      const lastActive = localStorage.getItem('hp_last_active_date');
+      document.getElementById('date-display').innerText = today;
+
+      if (lastActive !== today) {
+        localStorage.setItem('hp_last_active_date', today);
+        loadWorkoutDay();
+      }
+    }
+
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('nav button').forEach(el => el.classList.remove('active'));
+      document.getElementById(tabName + '-tab').classList.add('active');
+      document.getElementById('nav-' + tabName).classList.add('active');
+
+      if (tabName === 'history') renderHistory();
+      if (tabName === 'prs') renderPRs();
+    }
+
+    function loadWorkoutDay() {
+      const selectedDay = document.getElementById('day-select').value;
+      const listContainer = document.getElementById('exercise-list');
+      listContainer.innerHTML = '';
+
+      routines[selectedDay].forEach((ex, idx) => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <div class="exercise-title">${ex}</div>
+          <div id="sets-container-${idx}">
+            <div class="set-row">
+              <input type="number" placeholder="lbs" class="weight-input">
+              <input type="number" placeholder="reps" class="reps-input">
+              <input type="number" placeholder="RPE" class="rpe-input" min="1" max="10">
+            </div>
+          </div>
+          <button style="background:#333; color:#fff; border:none; padding:6px; border-radius:4px; font-size:0.8rem; margin-top:4px;" onclick="addSetRow(${idx})">+ Add Set</button>
+        `;
+        listContainer.appendChild(card);
+      });
+    }
+
+    function addSetRow(exIdx) {
+      const container = document.getElementById(`sets-container-${exIdx}`);
+      const row = document.createElement('div');
+      row.className = 'set-row';
+      row.innerHTML = `
+        <input type="number" placeholder="lbs" class="weight-input">
+        <input type="number" placeholder="reps" class="reps-input">
+        <input type="number" placeholder="RPE" class="rpe-input" min="1" max="10">
+      `;
+      container.appendChild(row);
+    }
+
+    function logWorkoutSession() {
+      const daySelect = document.getElementById('day-select');
+      const dayKey = daySelect.value;
+      const dayTitle = daySelect.options[daySelect.selectedIndex].text;
+      const dateStr = getLocalDateString();
+
+      const exerciseCards = document.querySelectorAll('#exercise-list .card');
+      const sessionData = {
+        title: dayTitle,
+        date: dateStr,
+        exercises: []
+      };
+
+      exerciseCards.forEach(card => {
+        const exTitle = card.querySelector('.exercise-title').innerText;
+        const setRows = card.querySelectorAll('.set-row');
+        const sets = [];
+
+        setRows.forEach(row => {
+          const w = parseFloat(row.querySelector('.weight-input').value);
+          const r = parseInt(row.querySelector('.reps-input').value);
+          const rpe = parseFloat(row.querySelector('.rpe-input').value);
+          if (!isNaN(w) && !isNaN(r)) {
+            sets.push({ weight: w, reps: r, rpe: rpe || null });
+          }
+        });
+
+        if (sets.length > 0) {
+          sessionData.exercises.push({ title: exTitle, sets });
+        }
+      });
+
+      if (sessionData.exercises.length === 0) {
+        alert("Please log at least one completed set.");
+        return;
+      }
+
+      // 1. Save locally on phone
+      const history = JSON.parse(localStorage.getItem('hp_workout_history') || '[]');
+      history.unshift(sessionData);
+      localStorage.setItem('hp_workout_history', JSON.stringify(history));
+
+      // 2. Export automatically to Google Sheets
+      if (GOOGLE_WEB_APP_URL) {
+        fetch(GOOGLE_WEB_APP_URL, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(sessionData)
+        }).catch(err => console.log("Google Drive sync note:", err));
+      }
+
+      alert("Workout saved locally and synced!");
+      loadWorkoutDay();
+    }
+
+    function renderHistory() {
+      const container = document.getElementById('history-buckets');
+      const history = JSON.parse(localStorage.getItem('hp_workout_history') || '[]');
+      container.innerHTML = '';
+
+      if (history.length === 0) {
+        container.innerHTML = '<p style="color:var(--text-muted)">No logged workouts yet.</p>';
+        return;
+      }
+
+      history.forEach((session, i) => {
+        const item = document.createElement('div');
+        item.className = 'accordion-item';
+        let exHtml = '';
+
+        session.exercises.forEach(ex => {
+          exHtml += `<div class="history-ex-title">${ex.title}</div><ul class="history-set-list">`;
+          ex.sets.forEach(s => {
+            exHtml += `<li>${s.weight} lbs × ${s.reps} reps ${s.rpe ? '(RPE ' + s.rpe + ')' : ''}</li>`;
+          });
+          exHtml += `</ul>`;
+        });
+
+        item.innerHTML = `
+          <div class="accordion-header" onclick="toggleAccordion(${i})">
+            <span>${session.title}</span>
+            <span style="font-size:0.8rem; color:var(--text-muted)">${session.date} &#9660;</span>
+          </div>
+          <div id="accordion-body-${i}" class="accordion-content">
+            ${exHtml}
+          </div>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    function toggleAccordion(idx) {
+      const body = document.getElementById(`accordion-body-${idx}`);
+      body.classList.toggle('open');
+    }
+
+    function renderPRs() {
+      const container = document.getElementById('prs-list');
+      const history = JSON.parse(localStorage.getItem('hp_workout_history') || '[]');
+      container.innerHTML = '';
+
+      const prs = {};
+      trackedPRs.forEach(name => prs[name] = { weight: 0, reps: 0, date: 'N/A' });
+
+      history.forEach(session => {
+        session.exercises.forEach(ex => {
+          if (trackedPRs.includes(ex.title)) {
+            ex.sets.forEach(s => {
+              if (s.weight > prs[ex.title].weight) {
+                prs[ex.title] = { weight: s.weight, reps: s.reps, date: session.date };
+              }
+            });
+          }
+        });
+      });
+
+      trackedPRs.forEach(name => {
+        const pr = prs[name];
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <div style="font-weight:bold; font-size:1rem; color:var(--accent);">${name}</div>
+          <div style="font-size:1.1rem; margin-top:4px;">${pr.weight > 0 ? pr.weight + ' lbs × ' + pr.reps + ' reps' : 'No record set'}</div>
+          <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">Date: ${pr.date}</div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    window.onload = function() {
+      checkDailyRefresh();
+      loadWorkoutDay();
+    };
+    window.onfocus = checkDailyRefresh;
+  </script>
+</body>
+</html>
